@@ -97,4 +97,34 @@
 			app:iconSpaceReserved="false" />
 	</PreferenceCategory>
 
+
+	<PreferenceCategory
+		android:title="@string/static_witness_title"
+		app:iconSpaceReserved="false">
+		<Preference
+			android:key="pref_key_static_witness_intro"
+			android:title="@string/static_witness_title"
+			android:summary="@string/static_witness_intro"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_witness_bluetooth"
+			android:title="@string/static_witness_bluetooth"
+			android:summary="@string/static_witness_loading"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_witness_wifi"
+			android:title="@string/static_witness_wifi"
+			android:summary="@string/static_witness_loading"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_witness_tor"
+			android:title="@string/static_witness_tor"
+			android:summary="@string/static_witness_loading"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+	</PreferenceCategory>
+
 </PreferenceScreen>
