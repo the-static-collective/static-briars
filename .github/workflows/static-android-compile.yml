@@ -1,0 +1,45 @@
+name: STATIC BRIARS — Android compile witness
+
+on:
+  push:
+    branches:
+      - 'experiment/road-compass-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-briars-android-compile-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compile-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout original source lineage and submodule links
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Install upstream Java toolchain
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install SDK command-line tools
+        uses: android-actions/setup-android@v3
+      - name: Install pinned Android platform
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Compile official-flavor debug Java sources
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace \
+            :briar-android:compileOfficialDebugJavaWithJavac
+      - name: Record only build outcome, not an official release
+        run: |
+          echo "Compilation succeeded; no APK was released or security-certified."
