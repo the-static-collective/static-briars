@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'experiment/road-compass-*'
+      - 'experiment/network-witness-*'
   pull_request:
     branches:
       - 'static/continuation-001'
@@ -38,7 +39,10 @@ jobs:
           trap 'rm -rf "$OUT"' EXIT
           javac -d "$OUT" \
             briar-android/src/main/java/org/briarproject/briar/android/settings/RoadCompassState.java \
-            STATIC/ci/RoadCompassSmoke.java
+            STATIC/ci/RoadCompassSmoke.java \
+            briar-android/src/main/java/org/briarproject/briar/android/settings/NetworkWitnessState.java \
+            STATIC/ci/NetworkWitnessSmoke.java
           java -cp "$OUT" RoadCompassSmoke
+          java -cp "$OUT" NetworkWitnessSmoke
       - name: Validate Android XML and change-observer bindings
         run: python3 STATIC/ci/check-road-compass.py
