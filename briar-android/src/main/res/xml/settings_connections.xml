@@ -63,4 +63,38 @@
 		app:iconSpaceReserved="false"
 		app:singleLineTitle="false" />
 
+
+	<PreferenceCategory
+		android:title="@string/static_compass_title"
+		app:iconSpaceReserved="false">
+		<Preference
+			android:key="pref_key_static_compass_explain"
+			android:title="@string/static_compass_explain_action"
+			android:summary="@string/static_compass_description"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_compass_bluetooth"
+			android:title="@string/static_compass_bluetooth"
+			android:summary="@string/static_compass_state_loading"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_compass_wifi"
+			android:title="@string/static_compass_wifi"
+			android:summary="@string/static_compass_state_loading"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_compass_tor"
+			android:title="@string/static_compass_tor"
+			android:summary="@string/static_compass_state_loading"
+			android:selectable="false"
+			app:iconSpaceReserved="false" />
+		<Preference
+			android:key="pref_key_static_compass_mailbox"
+			android:title="@string/static_compass_mailbox"
+			android:summary="@string/static_compass_mailbox_summary"
+			app:iconSpaceReserved="false" />
+	</PreferenceCategory>
+
 </PreferenceScreen>
