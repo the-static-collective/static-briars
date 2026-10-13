@@ -29,12 +29,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install SDK command-line tools
-        uses: android-actions/setup-android@v3
-      - name: Install pinned Android platform
+      - name: Install pinned platform with runner-provided SDK manager
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER" || { echo "SDK manager missing from runner"; exit 1; }
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
       - name: Compile official-flavor debug Java sources
         run: |
           chmod +x ./gradlew
