@@ -1,0 +1,72 @@
+name: STATIC BRIARS — independent lab APK witness
+
+on:
+  push:
+    branches:
+      - 'experiment/staticdev-packaging-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staticdev-debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out original attributed source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Check independent app identity and original source lineage
+        run: |
+          git merge-base --is-ancestor d03d6fcd776349ec6c8b7d22035e9bb04aa1787c HEAD
+          test -s LICENSE.txt
+          python3 STATIC/ci/check-staticdev.py
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Use hosted Android SDK (avoid retired 'tools' package)
+        run: |
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -x "$SDKMANAGER" || { echo "Missing SDK command line tools"; exit 1; }
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Assemble lab-only debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :briar-android:assembleStaticdevDebug
+      - name: Verify manifest identity before exposing build artifact
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          APK="$(find briar-android/build/outputs/apk/staticdev/debug -type f -name '*.apk' -print -quit)"
+          test -s "$APK"
+          AAPT="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" > /tmp/staticdev-badging.txt
+          grep -Fq "package: name='org.staticcollective.briars.lab.debug'" /tmp/staticdev-badging.txt
+          grep -Fq "application-label:'STATIC Briars DEV'" /tmp/staticdev-badging.txt
+          mkdir -p staticdev-artifact
+          cp "$APK" staticdev-artifact/STATIC-Briars-UNREVIEWED-LAB.apk
+          sha256sum staticdev-artifact/*.apk | tee staticdev-artifact/SHA256SUMS.txt
+          cat > staticdev-artifact/READ-BEFORE-INSTALLING.txt <<'EOF'
+          STATIC BRIARS -- DEVELOPMENT ONLY
+          Independently maintained experimental fork of Briar 1.5.22.
+          NOT an official Briar release. NOT audited. NOT verified reproducible.
+          Debug-signed for CI, not a stable publisher signing key.
+          DO NOT use with real private communications, real contacts, or sensitive data.
+          The source and applicable license notices remain in this repository.
+          EOF
+      - name: Retain short-lived lab artifact, never create a release
+        uses: actions/upload-artifact@v4
+        with:
+          name: STATIC-Briars-UNREVIEWED-lab-apk
+          path: staticdev-artifact/
+          if-no-files-found: error
+          retention-days: 2

@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Pre-build guard: independent lab identity without altering Briar official."""
+from pathlib import Path
+import re
+import xml.etree.ElementTree as ET
+
+root = Path(__file__).resolve().parents[2]
+gradle = (root / "briar-android/build.gradle").read_text()
+values = root / "briar-android/src/staticdev/res/values/strings.xml"
+manifest = root / "briar-android/src/staticdev/AndroidManifest.xml"
+art = root / "briar-android/src/staticdev/res/drawable/staticdev_launcher.xml"
+expected = "org.staticcollective.briars.lab.debug"
+
+assert re.search(r'official\s*\{\s*dimension\s+"version"\s*\}', gradle), "official flavor changed"
+assert 'applicationId "org.briarproject.briar.android"' in gradle
+assert 'applicationId "org.staticcollective.briars.lab"' in gradle
+assert 'applicationIdSuffix ".debug"' in gradle
+assert 'variant.flavors*.name.contains("staticdev")' in gradle
+names = {e.attrib["name"]: e.text for e in ET.parse(values).getroot() if e.tag == "string"}
+assert names["app_name"] == "STATIC Briars DEV"
+assert names["app_package"] == expected
+ns = "{http://schemas.android.com/apk/res/android}"
+application = ET.parse(manifest).getroot().find("application")
+assert application is not None
+assert application.get(ns + "label") == "@string/app_name"
+for attr in ("icon", "logo", "roundIcon"):
+    assert application.get(ns + attr) == "@drawable/staticdev_launcher", attr
+drawable = ET.parse(art).getroot()
+assert drawable.tag == "vector" and len(drawable) >= 2
+assert "org.briarproject.briar.android" not in names["app_package"]
+print("PASS: independent debug app ID, local intent target, visible identity, release gate")

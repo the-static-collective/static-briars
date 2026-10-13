@@ -70,9 +70,17 @@ android {
 		official {
 			dimension "version"
 		}
+		// Separately identifiable, locally installed research build.
+		// Never share Briar's official Android application identifier.
+		staticdev {
+			dimension "version"
+			applicationId "org.staticcollective.briars.lab"
+			versionNameSuffix "-static-dev"
+		}
 	}
 	variantFilter { variant ->
-		if (variant.flavors*.name.contains("screenshot") && variant.buildType.name == "release") {
+		if ((variant.flavors*.name.contains("screenshot") ||
+				variant.flavors*.name.contains("staticdev")) && variant.buildType.name == "release") {
 			setIgnore(true)
 		}
 	}
