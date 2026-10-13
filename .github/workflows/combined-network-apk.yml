@@ -23,7 +23,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git fetch origin refs/heads/experiment/network-witness-002-android:refs/remotes/origin/experiment/network-witness-002-android
-          git merge --no-commit --no-ff origin/experiment/network-witness-002-android
+          git -c user.name='Static Integration CI' -c user.email='ci@localhost.invalid' merge --no-commit --no-ff origin/experiment/network-witness-002-android
           git merge-base --is-ancestor d03d6fcd776349ec6c8b7d22035e9bb04aa1787c HEAD
           test -f briar-android/src/main/java/org/briarproject/briar/android/settings/NetworkWitnessState.java
           test -f briar-android/src/staticdevDebug/res/values/strings.xml
