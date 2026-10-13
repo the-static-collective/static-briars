@@ -1,0 +1,77 @@
+name: STATIC BRIARS — combined network witness test APK
+
+on:
+  push:
+    branches: ['experiment/combined-network-apk-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  combined-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout independent Static lab identity branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Assemble review-only source intersection
+        run: |
+          set -Eeuo pipefail
+          git fetch origin refs/heads/experiment/network-witness-002-android:refs/remotes/origin/experiment/network-witness-002-android
+          git merge --no-commit --no-ff origin/experiment/network-witness-002-android
+          git merge-base --is-ancestor d03d6fcd776349ec6c8b7d22035e9bb04aa1787c HEAD
+          test -f briar-android/src/main/java/org/briarproject/briar/android/settings/NetworkWitnessState.java
+          test -f briar-android/src/staticdevDebug/res/values/strings.xml
+          python3 STATIC/ci/check-staticdev.py
+          python3 STATIC/ci/check-road-compass.py
+          printf 'BASE_COMMIT=%s\n' "$(git rev-parse HEAD)" > /tmp/static-merge-provenance.txt
+          printf 'NETWORK_BRANCH=%s\n' "$(git rev-parse origin/experiment/network-witness-002-android)" >> /tmp/static-merge-provenance.txt
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK 35
+        run: |
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Assemble network witness in distinct staticdev variant
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace :briar-android:assembleStaticdevDebug
+      - name: Verify separate package ID and label before artifact
+        run: |
+          set -Eeuo pipefail
+          APK="$(find briar-android/build/outputs/apk/staticdev/debug -type f -name '*.apk' -print -quit)"
+          test -s "$APK"
+          AAPT="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" > /tmp/apk-badging.txt
+          grep -E "^(package:|application-label:|launchable-activity:)" /tmp/apk-badging.txt
+          grep -Fq "package: name='org.staticcollective.briars.lab.debug'" /tmp/apk-badging.txt
+          grep -Fq "application-label:'STATIC Briars DEV'" /tmp/apk-badging.txt
+          mkdir -p offline-lab
+          cp "$APK" offline-lab/STATIC-Briars-NetworkWitness-UNREVIEWED.apk
+          sha256sum offline-lab/*.apk > offline-lab/SHA256SUMS.txt
+          cp /tmp/static-merge-provenance.txt offline-lab/SOURCE-COMMITS.txt
+          cat > offline-lab/READ-FIRST.txt <<'EOF'
+          STATIC BRIARS - RESEARCH APK ONLY
+          Contains Road Compass + Network Witness, built as a non-merged source intersection.
+          Not official Briar software. Not audited or established as reproducible.
+          Debug CI signature only; do not use production identity, contacts or conversations.
+          No physical device, Mailbox transfer, or offline recovery has been proven.
+          EOF
+      - name: Retain review-only two-day APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: STATIC-Briars-NetworkWitness-UNREVIEWED
+          path: offline-lab/
+          if-no-files-found: error
+          retention-days: 2
