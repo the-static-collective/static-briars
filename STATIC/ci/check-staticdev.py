@@ -23,6 +23,7 @@ ns = "{http://schemas.android.com/apk/res/android}"
 application = ET.parse(manifest).getroot().find("application")
 assert application is not None
 assert application.get(ns + "label") == "@string/app_name"
+assert application.get("{http://schemas.android.com/tools}replace") == "android:icon,android:logo,android:roundIcon"
 for attr in ("icon", "logo", "roundIcon"):
     assert application.get(ns + attr) == "@drawable/staticdev_launcher", attr
 activity = application.find("activity")
