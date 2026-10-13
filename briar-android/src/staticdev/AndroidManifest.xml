@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Distinct launcher artwork and label; never present as official Briar. -->
+    <application
+        android:icon="@drawable/staticdev_launcher"
+        android:logo="@drawable/staticdev_launcher"
+        android:roundIcon="@drawable/staticdev_launcher"
+        android:label="@string/app_name"
+        tools:replace="android:icon,android:logo,android:roundIcon">
+        <!-- Lab builds must not claim official briar:// links or be an
+             externally addressable recipient for contacts/shares. Explicit
+             in-app navigation remains permitted. -->
+        <activity
+            android:name="org.briarproject.briar.android.navdrawer.NavDrawerActivity"
+            android:exported="false"
+            tools:replace="android:exported">
+            <intent-filter tools:node="removeAll" />
+        </activity>
+    </application>
+</manifest>

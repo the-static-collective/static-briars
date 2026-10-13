@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug-only flavor. The official package and label remain unchanged. -->
+    <string name="app_name" translatable="false">STATIC Briars DEV</string>
+    <!-- Existing explicit settings intents use this value, not the library's Java namespace. -->
+    <string name="app_package" translatable="false">org.staticcollective.briars.lab.debug</string>
+</resources>
