@@ -50,8 +50,16 @@ jobs:
           AAPT="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" > /tmp/staticdev-badging.txt
-          grep -Fq "package: name='org.staticcollective.briars.lab.debug'" /tmp/staticdev-badging.txt
-          grep -Fq "application-label:'STATIC Briars DEV'" /tmp/staticdev-badging.txt
+          echo "Independent AAPT identity evidence:"
+          grep -E "^(package:|application-label:|launchable-activity:)" /tmp/staticdev-badging.txt || true
+          grep -Fq "package: name='org.staticcollective.briars.lab.debug'" /tmp/staticdev-badging.txt || {
+            echo "::error::Unexpected APK application ID; refusing to retain artifact."
+            exit 1
+          }
+          grep -Fq "application-label:'STATIC Briars DEV'" /tmp/staticdev-badging.txt || {
+            echo "::error::Unexpected APK launcher label; refusing to retain artifact."
+            exit 1
+          }
           mkdir -p staticdev-artifact
           cp "$APK" staticdev-artifact/STATIC-Briars-UNREVIEWED-LAB.apk
           sha256sum staticdev-artifact/*.apk | tee staticdev-artifact/SHA256SUMS.txt
