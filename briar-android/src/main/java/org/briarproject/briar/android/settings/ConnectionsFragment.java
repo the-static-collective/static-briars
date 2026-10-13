@@ -1,10 +1,14 @@
 package org.briarproject.briar.android.settings;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import org.briarproject.briar.R;
+import org.briarproject.briar.android.mailbox.MailboxActivity;
 import org.briarproject.nullsafety.MethodsNotNullByDefault;
 import org.briarproject.nullsafety.ParametersNotNullByDefault;
 
@@ -21,6 +25,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.ListPreference;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SwitchPreferenceCompat;
 
@@ -59,6 +64,9 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 	private ListPreference torNetwork;
 	private SwitchPreferenceCompat torMobile;
 	private SwitchPreferenceCompat torOnlyWhenCharging;
+	private Preference compassBluetooth;
+	private Preference compassWifi;
+	private Preference compassTor;
 
 	@RequiresApi(31)
 	private final ActivityResultLauncher<String[]> requestPermissionLauncher =
@@ -84,6 +92,25 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 		torNetwork = findPreference(PREF_KEY_TOR_NETWORK);
 		torMobile = findPreference(PREF_KEY_TOR_MOBILE_DATA);
 		torOnlyWhenCharging = findPreference(PREF_KEY_TOR_ONLY_WHEN_CHARGING);
+
+
+		compassBluetooth = findPreference("pref_key_static_compass_bluetooth");
+		compassWifi = findPreference("pref_key_static_compass_wifi");
+		compassTor = findPreference("pref_key_static_compass_tor");
+		Preference guide = findPreference("pref_key_static_compass_explain");
+		guide.setOnPreferenceClickListener(preference -> {
+			new MaterialAlertDialogBuilder(requireContext())
+					.setTitle(R.string.static_compass_explain_title)
+					.setMessage(R.string.static_compass_explain_body)
+					.setPositiveButton(android.R.string.ok, null)
+					.show();
+			return true;
+		});
+		Preference mailbox = findPreference("pref_key_static_compass_mailbox");
+		mailbox.setOnPreferenceClickListener(preference -> {
+			startActivity(new Intent(requireContext(), MailboxActivity.class));
+			return true;
+		});
 
 		torNetwork.setSummaryProvider(viewModel.torSummaryProvider);
 
@@ -123,14 +150,17 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 		connectionsManager.btEnabled().observe(lifecycleOwner, enabled -> {
 			enableBluetooth.setChecked(enabled);
 			enableAndPersist(enableBluetooth);
+			updateRoadCompass();
 		});
 		connectionsManager.wifiEnabled().observe(lifecycleOwner, enabled -> {
 			enableWifi.setChecked(enabled);
 			enableAndPersist(enableWifi);
+			updateRoadCompass();
 		});
 		connectionsManager.torEnabled().observe(lifecycleOwner, enabled -> {
 			enableTor.setChecked(enabled);
 			enableAndPersist(enableTor);
+			updateRoadCompass();
 		});
 		connectionsManager.torNetwork().observe(lifecycleOwner, value -> {
 			torNetwork.setValue(value);
@@ -139,11 +169,57 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 		connectionsManager.torMobile().observe(lifecycleOwner, enabled -> {
 			torMobile.setChecked(enabled);
 			enableAndPersist(torMobile);
+			updateRoadCompass();
 		});
 		connectionsManager.torCharging().observe(lifecycleOwner, enabled -> {
 			torOnlyWhenCharging.setChecked(enabled);
 			enableAndPersist(torOnlyWhenCharging);
+			updateRoadCompass();
 		});
+	}
+
+	/**
+	 * Read-only summaries of local preferences, never live transport health.
+	 * Tor/network reachability and message delivery cannot be inferred here.
+	 */
+	private void updateRoadCompass() {
+		compassBluetooth.setSummary(localSummary(
+				RoadCompassState.localMode(connectionsManager.btEnabled().getValue())));
+		compassWifi.setSummary(localSummary(
+				RoadCompassState.localMode(connectionsManager.wifiEnabled().getValue())));
+		RoadCompassState.Mode torMode = RoadCompassState.torMode(
+				connectionsManager.torEnabled().getValue(),
+				connectionsManager.torMobile().getValue(),
+				connectionsManager.torCharging().getValue());
+		compassTor.setSummary(torSummary(torMode));
+	}
+
+	private int localSummary(RoadCompassState.Mode mode) {
+		switch (mode) {
+			case DISABLED:
+				return R.string.static_compass_state_off;
+			case ENABLED:
+				return R.string.static_compass_state_on;
+			default:
+				return R.string.static_compass_state_loading;
+		}
+	}
+
+	private int torSummary(RoadCompassState.Mode mode) {
+		switch (mode) {
+			case DISABLED:
+				return R.string.static_compass_state_off;
+			case ENABLED:
+				return R.string.static_compass_state_on;
+			case WIFI_ONLY:
+				return R.string.static_compass_tor_wifi_only;
+			case CHARGING_ONLY:
+				return R.string.static_compass_tor_charging_only;
+			case WIFI_AND_CHARGING:
+				return R.string.static_compass_tor_wifi_and_charging;
+			default:
+				return R.string.static_compass_state_loading;
+		}
 	}
 
 	@Override

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Experimental Static fork UI. These describe preferences, NOT live connectivity. -->
+    <string name="static_compass_title">Road Compass</string>
+    <string name="static_compass_description">These are your device settings, not live connection tests. Enabled paths may still be unavailable. No diagnostic data leaves your device.</string>
+    <string name="static_compass_bluetooth">Nearby Bluetooth</string>
+    <string name="static_compass_wifi">Nearby Wi-Fi</string>
+    <string name="static_compass_tor">Tor internet route</string>
+    <string name="static_compass_mailbox">Offline Mailbox</string>
+    <string name="static_compass_mailbox_summary">Open your Mailbox setup and status. A configured Mailbox does not guarantee delivery.</string>
+    <string name="static_compass_state_loading">Reading local preferences…</string>
+    <string name="static_compass_state_off">Disabled in Briar settings; this route will not be used.</string>
+    <string name="static_compass_state_on">Enabled in Briar settings; a working connection is not confirmed.</string>
+    <string name="static_compass_tor_wifi_only">Tor enabled; mobile data disabled. Connection not confirmed.</string>
+    <string name="static_compass_tor_charging_only">Tor enabled; restricted to charging. Connection not confirmed.</string>
+    <string name="static_compass_tor_wifi_and_charging">Tor enabled; mobile data disabled and restricted to charging. Connection not confirmed.</string>
+    <string name="static_compass_explain_title">What Road Compass can tell you</string>
+    <string name="static_compass_explain_body">The switches above are transport preferences. They do not measure live Tor circuits, nearby peers, or whether a message arrived. Bluetooth and Wi-Fi also depend on device permissions, radio availability, and proximity. For delayed delivery, see Mailbox status. Briar stores your conversations on your device; this guide does not upload diagnostics or modify your settings.</string>
+    <string name="static_compass_explain_action">Read connection guide</string>
+</resources>

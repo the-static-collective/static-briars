@@ -1,0 +1,44 @@
+name: STATIC Road Compass — Android UI contract
+
+on:
+  push:
+    branches:
+      - 'experiment/road-compass-*'
+  pull_request:
+    branches:
+      - 'static/continuation-001'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compass-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Set up Java for Android-free state testing
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Check source ancestry and metadata
+        run: |
+          git merge-base --is-ancestor d03d6fcd776349ec6c8b7d22035e9bb04aa1787c HEAD
+          test -s LICENSE.txt
+          test -s .gitmodules
+      - name: Compile and exercise transport-preference state machine
+        run: |
+          OUT="$(mktemp -d)"
+          trap 'rm -rf "$OUT"' EXIT
+          javac -d "$OUT" \
+            briar-android/src/main/java/org/briarproject/briar/android/settings/RoadCompassState.java \
+            STATIC/ci/RoadCompassSmoke.java
+          java -cp "$OUT" RoadCompassSmoke
+      - name: Validate Android XML and change-observer bindings
+        run: python3 STATIC/ci/check-road-compass.py
