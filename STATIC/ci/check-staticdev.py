@@ -25,6 +25,14 @@ assert application is not None
 assert application.get(ns + "label") == "@string/app_name"
 for attr in ("icon", "logo", "roundIcon"):
     assert application.get(ns + attr) == "@drawable/staticdev_launcher", attr
+activity = application.find("activity")
+assert activity is not None
+assert activity.get(ns + "name") == "org.briarproject.briar.android.navdrawer.NavDrawerActivity"
+assert activity.get(ns + "exported") == "false"
+assert activity.get("{http://schemas.android.com/tools}replace") == "android:exported"
+filters = activity.findall("intent-filter")
+assert len(filters) == 1
+assert filters[0].get("{http://schemas.android.com/tools}node") == "removeAll"
 drawable = ET.parse(art).getroot()
 assert drawable.tag == "vector" and len(drawable) >= 2
 assert "org.briarproject.briar.android" not in names["app_package"]

@@ -11,6 +11,7 @@ Create a separately installable `staticdevDebug` flavor for reviewable laborator
 - Android application ID: `org.staticcollective.briars.lab.debug` (not the Briar Project's package).
 - Distinct launcher name and icon: **STATIC Briars DEV**.
 - Existing `@string/app_package` used by in-app explicit settings Intents points to the lab app rather than official Briar.
+- Lab variant removes NavDrawerActivity's exported `briar://` and incoming share Intent filters and marks it unexported, to avoid intercepting contact invitations meant for official Briar. These removals must be verified in the merged manifest and on a test device; no claim of complete Intent isolation is made.
 - `staticdevRelease` is disabled, and only `assembleStaticdevDebug` is used.
 - The independently maintained source lineage and original licensing remain intact.
 
