@@ -1,0 +1,84 @@
+name: STATIC BRIARS — Moto Stylus 2022 Android compatibility
+
+on:
+  push:
+    branches: ['experiment/moto-stylus-2022-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  moto-2022:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [30, 31]
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout source, original provenance and pinned Mailbox submodule
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Compose Network Witness in independent Staticdev lab package
+        run: |
+          set -Eeuo pipefail
+          git fetch origin refs/heads/experiment/network-witness-002-android:refs/remotes/origin/experiment/network-witness-002-android
+          git -c user.name='Static Moto Compatibility CI' -c user.email='ci@localhost.invalid' merge --no-commit --no-ff origin/experiment/network-witness-002-android
+          git merge-base --is-ancestor d03d6fcd776349ec6c8b7d22035e9bb04aa1787c HEAD
+          python3 STATIC/ci/check-staticdev.py
+          python3 STATIC/ci/check-road-compass.py
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install required Android build tools
+        run: |
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Build distinct non-production APK
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace :briar-android:assembleStaticdevDebug
+      - name: Independently verify Moto device compatibility inputs
+        run: |
+          set -Eeuo pipefail
+          APK="$(find briar-android/build/outputs/apk/staticdev/debug -type f -name '*.apk' -print -quit)"
+          test -s "$APK"
+          AAPT="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" > /tmp/moto-apk-badging.txt
+          grep -E "^(package:|sdkVersion:|targetSdkVersion:|application-label:)" /tmp/moto-apk-badging.txt
+          grep -Fq "package: name='org.staticcollective.briars.lab.debug'" /tmp/moto-apk-badging.txt
+          grep -Fq "application-label:'STATIC Briars DEV'" /tmp/moto-apk-badging.txt
+          grep -Fq "sdkVersion:'21'" /tmp/moto-apk-badging.txt
+          python3 - "$APK" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              paths = set(z.namelist())
+              for arch in ("arm64-v8a", "armeabi-v7a"):
+                  for lib in ("libtor.so", "liblyrebird.so"):
+                      assert f"lib/{arch}/{lib}" in paths, f"Missing {arch}/{lib}"
+          print("PASS: includes 32- and 64-bit ARM Tor/Lyrebird libraries")
+          PY
+      - name: Enable KVM for emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and launch on Android ${{ matrix.api }} while offline
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash STATIC/ci/smoke-moto2022-emulator.sh
