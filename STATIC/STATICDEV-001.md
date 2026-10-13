@@ -37,3 +37,13 @@ Never load real identities, real conversations, or important contacts into this 
 2. Clean Android emulator: launch, account creation, settings navigation, Tor plugin activation, Mailbox status, app link behavior.
 3. Two sacrificial devices and test identities only: Wi-Fi / Bluetooth / Tor path transitions; battery and reconnect tests.
 4. Confirm all original GPL notices, branding, signing custody and independent release authority before any wide distribution.
+
+## Build-time identity regression found and corrected
+
+The first assembled lab APK had the independent package ID, but was still
+labeled `Briar Debug` by `src/debug/res/values/strings.xml`. Android
+resource precedence puts build-type resources over flavor resources, so
+`src/staticdevDebug/res/values/strings.xml` now defines the exact lab
+variant's display name **and** explicit-intent `app_package` string.
+The prebuild guard requires both values. CI's `aapt dump badging` remains
+the authority for the final assembled application's visible launcher label.

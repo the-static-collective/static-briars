@@ -17,6 +17,13 @@ assert 'applicationId "org.staticcollective.briars.lab"' in gradle
 assert 'applicationIdSuffix ".debug"' in gradle
 assert 'variant.flavors*.name.contains("staticdev")' in gradle
 names = {e.attrib["name"]: e.text for e in ET.parse(values).getroot() if e.tag == "string"}
+# Android build-type resources override flavor resources. Briar's original
+# src/debug strings say "Briar Debug" and otherwise steal our launcher label
+# and the explicit app_package target. The exact variant has higher priority.
+variant_values = root / "briar-android/src/staticdevDebug/res/values/strings.xml"
+variant_names = {e.attrib["name"]: e.text for e in ET.parse(variant_values).getroot() if e.tag == "string"}
+assert variant_names["app_name"] == "STATIC Briars DEV"
+assert variant_names["app_package"] == expected
 assert names["app_name"] == "STATIC Briars DEV"
 assert names["app_package"] == expected
 ns = "{http://schemas.android.com/apk/res/android}"

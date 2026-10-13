@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Variant-specific overrides MUST win over inherited src/debug resources. -->
+    <string name="app_name" translatable="false">STATIC Briars DEV</string>
+    <string name="app_package" translatable="false">org.staticcollective.briars.lab.debug</string>
+</resources>
