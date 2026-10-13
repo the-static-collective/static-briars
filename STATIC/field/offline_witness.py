@@ -112,9 +112,39 @@ def summarize(records):
         and r["observer"] == "B" and r["result"] == "observed"
         for r in records
     )
-    b_recovered = any_b_offline and any_b_online and any(
-        x[0] == "B" and x[2] == "B" for x in confirmed_pairs
-    )
+    # Disconnection recovery is a claimed sequence, NOT simply the presence
+    # of unrelated offline/online/message observations.
+    phase_b = [r for r in records if r["phase"] == "B" and r["result"] == "observed"]
+    b_recovered = False
+    if any_b_offline and any_b_online:
+        for send in phase_b:
+            if send["event"] != "send-submitted" or send["to"] != "B":
+                continue
+            prior_offline = any(
+                r["observer"] == "B" and r["event"] == "device-offline"
+                and r["elapsed_seconds"] < send["elapsed_seconds"]
+                for r in phase_b
+            )
+            if not prior_offline:
+                continue
+            for receive in phase_b:
+                if not (receive["event"] == "recipient-visible"
+                        and receive["observer"] == "B"
+                        and receive["from"] == send["from"]
+                        and receive["to"] == send["to"]
+                        and receive["marker"] == send["marker"]):
+                    continue
+                recovered = any(
+                    r["observer"] == "B" and r["event"] == "device-online"
+                    and send["elapsed_seconds"] < r["elapsed_seconds"]
+                    < receive["elapsed_seconds"]
+                    for r in phase_b
+                )
+                if recovered:
+                    b_recovered = True
+                    break
+            if b_recovered:
+                break
     mailbox_observed = any(
         r["phase"] == "C" and r["observer"] == "C"
         and r["event"] == "mailbox-status-visible"
@@ -152,7 +182,7 @@ def main():
         if records and item["experiment"] != records[0]["experiment"]:
             parser.error("Experiment mismatch")
         args.ledger.parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(str(args.ledger), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        fd = os.open(str(args.ledger), os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
         try:
             if os.fstat(fd).st_mode & 0o077:
                 raise ValueError("Existing ledger permissions expose private observations")
