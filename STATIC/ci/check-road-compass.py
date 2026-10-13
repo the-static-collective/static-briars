@@ -67,6 +67,5 @@ for event in ("TransportStateEvent", "ConnectionOpenedEvent", "ConnectionClosedE
     assert "e instanceof " + event in vm, "Missing native event: " + event
 assert "pluginManager.getPlugin" in manager, "Runtime must come from Briar"
 assert "connectionRegistry.getConnectedContacts" in manager, "Peer evidence must come from Briar"
-assert "read-only" in (ROOT / "STATIC/ROAD-COMPASS-001.md").read_text().lower() or True
 assert "does not prove that any message reached" in notices
 print("PASS: Road Compass and Network Witness resources/event wiring/privacy contract")
