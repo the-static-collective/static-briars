@@ -1,6 +1,10 @@
 package org.briarproject.briar.android.settings;
 
+import org.briarproject.bramble.api.connection.ConnectionRegistry;
 import org.briarproject.bramble.api.plugin.BluetoothConstants;
+import org.briarproject.bramble.api.plugin.Plugin;
+import org.briarproject.bramble.api.plugin.PluginManager;
+import org.briarproject.bramble.api.plugin.TransportId;
 import org.briarproject.bramble.api.plugin.LanTcpConstants;
 import org.briarproject.bramble.api.plugin.TorConstants;
 import org.briarproject.bramble.api.settings.Settings;
@@ -30,6 +34,10 @@ class ConnectionsManager {
 	final ConnectionsStore wifiStore;
 	final ConnectionsStore torStore;
 
+	private final PluginManager pluginManager;
+	private final ConnectionRegistry connectionRegistry;
+	private final MutableLiveData<NetworkWitnessState.Snapshot> roadRuntime = new MutableLiveData<>();
+
 	private final MutableLiveData<Boolean> btEnabled = new MutableLiveData<>();
 	private final MutableLiveData<Boolean> wifiEnabled =
 			new MutableLiveData<>();
@@ -40,7 +48,10 @@ class ConnectionsManager {
 			new MutableLiveData<>();
 
 	ConnectionsManager(SettingsManager settingsManager,
-			Executor dbExecutor) {
+			Executor dbExecutor, PluginManager pluginManager,
+			ConnectionRegistry connectionRegistry) {
+		this.pluginManager = pluginManager;
+		this.connectionRegistry = connectionRegistry;
 		btStore =
 				new ConnectionsStore(settingsManager, dbExecutor, BT_NAMESPACE);
 		wifiStore = new ConnectionsStore(settingsManager, dbExecutor,
@@ -72,6 +83,31 @@ class ConnectionsManager {
 
 		torCharging.postValue(settings.getBoolean(PREF_TOR_ONLY_WHEN_CHARGING,
 				DEFAULT_PREF_TOR_ONLY_WHEN_CHARGING));
+	}
+
+
+	/**
+	 * Sample the real Briar transport runtimes and registry, not an external
+	 * ping. Caller schedules this off the UI thread. Counts are not identities
+	 * and snapshots are only current at observation time.
+	 */
+	void refreshRoadRuntime() {
+		roadRuntime.postValue(new NetworkWitnessState.Snapshot(
+				road(BluetoothConstants.ID),
+				road(LanTcpConstants.ID),
+				road(TorConstants.ID)));
+	}
+
+	private NetworkWitnessState.Road road(TransportId transportId) {
+		Plugin plugin = pluginManager.getPlugin(transportId);
+		String state = plugin == null ? null : plugin.getState().name();
+		int connectedContacts =
+				connectionRegistry.getConnectedContacts(transportId).size();
+		return NetworkWitnessState.fromPlugin(state, connectedContacts);
+	}
+
+	LiveData<NetworkWitnessState.Snapshot> roadRuntime() {
+		return roadRuntime;
 	}
 
 	LiveData<Boolean> btEnabled() {
