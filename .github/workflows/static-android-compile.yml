@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'experiment/road-compass-*'
+      - 'experiment/network-witness-*'
   workflow_dispatch:
 
 permissions:

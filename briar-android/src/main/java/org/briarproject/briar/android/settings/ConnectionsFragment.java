@@ -67,6 +67,9 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 	private Preference compassBluetooth;
 	private Preference compassWifi;
 	private Preference compassTor;
+	private Preference witnessBluetooth;
+	private Preference witnessWifi;
+	private Preference witnessTor;
 
 	@RequiresApi(31)
 	private final ActivityResultLauncher<String[]> requestPermissionLauncher =
@@ -97,6 +100,9 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 		compassBluetooth = findPreference("pref_key_static_compass_bluetooth");
 		compassWifi = findPreference("pref_key_static_compass_wifi");
 		compassTor = findPreference("pref_key_static_compass_tor");
+		witnessBluetooth = findPreference("pref_key_static_witness_bluetooth");
+		witnessWifi = findPreference("pref_key_static_witness_wifi");
+		witnessTor = findPreference("pref_key_static_witness_tor");
 		Preference guide = findPreference("pref_key_static_compass_explain");
 		guide.setOnPreferenceClickListener(preference -> {
 			new MaterialAlertDialogBuilder(requireContext())
@@ -144,6 +150,12 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 	@Override
 	public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
+
+		viewModel.getRoadRuntime().observe(getViewLifecycleOwner(), snapshot -> {
+			witnessBluetooth.setSummary(runtimeSummary(snapshot.bluetooth));
+			witnessWifi.setSummary(runtimeSummary(snapshot.wifi));
+			witnessTor.setSummary(runtimeSummary(snapshot.tor));
+		});
 
 		// persist changes after setting initial value and enabling
 		LifecycleOwner lifecycleOwner = getViewLifecycleOwner();
@@ -222,9 +234,37 @@ public class ConnectionsFragment extends PreferenceFragmentCompat {
 		}
 	}
 
+	private String runtimeSummary(NetworkWitnessState.Road road) {
+		int res;
+		switch (road.mode) {
+			case UNAVAILABLE:
+				res = R.string.static_witness_unavailable;
+				break;
+			case STARTING_STOPPING:
+				res = R.string.static_witness_starting;
+				break;
+			case DISABLED:
+				res = R.string.static_witness_disabled;
+				break;
+			case ENABLING:
+				res = R.string.static_witness_enabling;
+				break;
+			case ACTIVE:
+				res = R.string.static_witness_active;
+				break;
+			case INACTIVE:
+				res = R.string.static_witness_inactive;
+				break;
+			default:
+				throw new AssertionError(road.mode);
+		}
+		return getString(res, road.connectedContacts);
+	}
+
 	@Override
 	public void onStart() {
 		super.onStart();
+		viewModel.refreshRoadRuntime();
 		requireActivity().setTitle(R.string.network_settings_title);
 	}
 

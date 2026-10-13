@@ -45,4 +45,27 @@ assert "setPositiveButton(android.R.string.ok, null)" in source
 notices = res.read_text()
 assert "not live connection tests" in notices
 assert "Connection not confirmed" in notices
-print("PASS: Android Road Compass resource/wiring and privacy copy contracts")
+
+witness_ids = {
+    "pref_key_static_witness_intro",
+    "pref_key_static_witness_bluetooth",
+    "pref_key_static_witness_wifi",
+    "pref_key_static_witness_tor",
+}
+assert witness_ids.issubset(preference_ids), "Missing native runtime status row"
+for phrase in (
+    "getRoadRuntime().observe",
+    "witnessBluetooth.setSummary",
+    "witnessWifi.setSummary",
+    "witnessTor.setSummary",
+    "viewModel.refreshRoadRuntime();",
+):
+    assert phrase in source, "Missing runtime UI binding: " + phrase
+vm = (ROOT / "briar-android/src/main/java/org/briarproject/briar/android/settings/SettingsViewModel.java").read_text()
+manager = (ROOT / "briar-android/src/main/java/org/briarproject/briar/android/settings/ConnectionsManager.java").read_text()
+for event in ("TransportStateEvent", "ConnectionOpenedEvent", "ConnectionClosedEvent"):
+    assert "e instanceof " + event in vm, "Missing native event: " + event
+assert "pluginManager.getPlugin" in manager, "Runtime must come from Briar"
+assert "connectionRegistry.getConnectedContacts" in manager, "Peer evidence must come from Briar"
+assert "does not prove that any message reached" in notices
+print("PASS: Road Compass and Network Witness resources/event wiring/privacy contract")

@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.widget.Toast;
 
 import org.briarproject.bramble.api.FeatureFlags;
+import org.briarproject.bramble.api.connection.ConnectionRegistry;
 import org.briarproject.bramble.api.db.DatabaseExecutor;
 import org.briarproject.bramble.api.db.DbException;
 import org.briarproject.bramble.api.db.TransactionManager;
@@ -17,6 +18,10 @@ import org.briarproject.bramble.api.identity.LocalAuthor;
 import org.briarproject.bramble.api.lifecycle.IoExecutor;
 import org.briarproject.bramble.api.lifecycle.LifecycleManager;
 import org.briarproject.bramble.api.plugin.BluetoothConstants;
+import org.briarproject.bramble.api.plugin.PluginManager;
+import org.briarproject.bramble.api.plugin.event.ConnectionOpenedEvent;
+import org.briarproject.bramble.api.plugin.event.ConnectionClosedEvent;
+import org.briarproject.bramble.api.plugin.event.TransportStateEvent;
 import org.briarproject.bramble.api.plugin.LanTcpConstants;
 import org.briarproject.bramble.api.plugin.TorConstants;
 import org.briarproject.bramble.api.settings.Settings;
@@ -100,6 +105,8 @@ class SettingsViewModel extends DbViewModel implements EventListener {
 			TransactionManager db,
 			AndroidExecutor androidExecutor,
 			SettingsManager settingsManager,
+			PluginManager pluginManager,
+			ConnectionRegistry connectionRegistry,
 			IdentityManager identityManager,
 			EventBus eventBus,
 			AvatarManager avatarManager,
@@ -123,13 +130,15 @@ class SettingsViewModel extends DbViewModel implements EventListener {
 		torSummaryProvider = new TorSummaryProvider(getApplication(),
 				locationUtils, circumventionProvider);
 		connectionsManager =
-				new ConnectionsManager(settingsManager, dbExecutor);
+				new ConnectionsManager(settingsManager, dbExecutor,
+					pluginManager, connectionRegistry);
 		notificationsManager = new NotificationsManager(getApplication(),
 				settingsManager, dbExecutor);
 
 		eventBus.addListener(this);
 		loadSettings();
 		if (shouldEnableProfilePictures()) loadOwnIdentityInfo();
+		refreshRoadRuntime();
 	}
 
 	@Override
@@ -150,6 +159,7 @@ class SettingsViewModel extends DbViewModel implements EventListener {
 						settingsManager.getSettings(WIFI_NAMESPACE));
 				connectionsManager.updateTorSettings(
 						settingsManager.getSettings(TOR_NAMESPACE));
+				connectionsManager.refreshRoadRuntime();
 				logDuration(LOG, "Loading settings", start);
 			} catch (DbException e) {
 				handleException(e);
@@ -174,8 +184,26 @@ class SettingsViewModel extends DbViewModel implements EventListener {
 		});
 	}
 
+
+	/**
+	 * Refresh from Briar's own runtime and connection registry. Never performs
+	 * network probes or asks for contact identifiers in UI.
+	 */
+	void refreshRoadRuntime() {
+		runOnDbThread(connectionsManager::refreshRoadRuntime);
+	}
+
+	LiveData<NetworkWitnessState.Snapshot> getRoadRuntime() {
+		return connectionsManager.roadRuntime();
+	}
+
 	@Override
 	public void eventOccurred(Event e) {
+		if (e instanceof TransportStateEvent ||
+				e instanceof ConnectionOpenedEvent ||
+				e instanceof ConnectionClosedEvent) {
+			refreshRoadRuntime();
+		}
 		if (e instanceof SettingsUpdatedEvent) {
 			SettingsUpdatedEvent s = (SettingsUpdatedEvent) e;
 			String namespace = s.getNamespace();
@@ -193,6 +221,9 @@ class SettingsViewModel extends DbViewModel implements EventListener {
 				LOG.info("Tor settings updated");
 				connectionsManager.updateTorSettings(s.getSettings());
 			}
+			if (namespace.equals(BT_NAMESPACE) ||
+					namespace.equals(WIFI_NAMESPACE) ||
+					namespace.equals(TOR_NAMESPACE)) refreshRoadRuntime();
 		}
 	}
 
