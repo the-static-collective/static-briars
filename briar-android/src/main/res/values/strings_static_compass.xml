@@ -17,4 +17,16 @@
     <string name="static_compass_explain_title">What Road Compass can tell you</string>
     <string name="static_compass_explain_body">The switches above are transport preferences. They do not measure live Tor circuits, nearby peers, or whether a message arrived. Bluetooth and Wi-Fi also depend on device permissions, radio availability, and proximity. For delayed delivery, see Mailbox status. Briar stores your conversations on your device; this guide does not upload diagnostics or modify your settings.</string>
     <string name="static_compass_explain_action">Read connection guide</string>
+    <string name="static_witness_title">Network Witness — actual runtime</string>
+    <string name="static_witness_intro">Briar runtime reports and current peer connections, sampled locally. A working transport does not prove that any message reached its destination.</string>
+    <string name="static_witness_bluetooth">Bluetooth runtime</string>
+    <string name="static_witness_wifi">Wi-Fi runtime</string>
+    <string name="static_witness_tor">Tor runtime</string>
+    <string name="static_witness_loading">Reading Briar runtime…</string>
+    <string name="static_witness_unavailable">Plugin not available in this build; %1$d peer links reported.</string>
+    <string name="static_witness_starting">Starting or stopping; %1$d peer links reported.</string>
+    <string name="static_witness_disabled">Runtime disabled; %1$d peer links reported.</string>
+    <string name="static_witness_enabling">Runtime enabling; %1$d peer links reported.</string>
+    <string name="static_witness_inactive">Runtime unable to connect now; %1$d peer links reported.</string>
+    <string name="static_witness_active">Runtime available; %1$d contacts connected on this route right now.</string>
 </resources>
